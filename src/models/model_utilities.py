@@ -61,6 +61,30 @@ def prepare_model_data(df,features,dummies,target):
     return X,y,model_columns
 
 
+def tv_split(X,y,test=.2):
+    """
+    Prepares dataframe for use in time series split
+
+    Parameters:
+    X           (pandas df)        :    feature dataframe
+    y           (pandas series)    :    target value series
+    test        (float)            :    % of data to use as holdout set
+
+    Returns:
+    (pandas df)         : training feature set
+    (pandas df)         : holdout feature set
+    (pandas series)     : training target set
+    (pandas series)     : holdout target set
+    """
+
+    split = int(len(X)*(1-test))
+    X_train = pd.DataFrame(data= X[:split].values, columns = X.columns)
+    X_ho = pd.DataFrame(data= X[split:].values, columns = X.columns)
+    y_train = y[:split].values
+    y_ho =  y[split:].values
+    
+    return X_train,X_ho,y_train,y_ho
+
 
 
 
