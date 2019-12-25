@@ -37,10 +37,32 @@ dummies = ['value_lag',
 target = ['value'] 
 
 def prepare_model_data(df,features,dummies,target):
+    """
+    Takes in fully transformed data frame and creates features set (with dummies)
+    target, and feature column names for future use
+
+    Parameters:
+    df          (pandas df)       :     Fully transformed/engineered dataframe
+    features    (list)            :     features to try
+    dummies     (list)            :     list of features to create dummy variable for
+    target      (list)            :     target variable
+
+    Returns:
+    (pandas df)       :     model feature set
+    (pandas series)   :     target 
+    (list)            :     feature columns
+
+    """
     df_model = df[features]
     X = pd.get_dummies(df_model,columns=dummies)
     model_columns = X.columns
     y = df[target]
 
     return X,y,model_columns
+
+
+
+
+
+
 
