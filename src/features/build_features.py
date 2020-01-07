@@ -4,6 +4,7 @@ import numpy as np
 
 def build_features(ndf):
     #create FP and value columns 
+
     ndf['fp_pts'] = ndf['pts']*1
     ndf['fp_fg'] = ndf['fg']*2
     ndf['fp_3p'] = ndf['3p']*3
@@ -22,6 +23,15 @@ def build_features(ndf):
     ndf['rest'] = pd.to_numeric(ndf['rest'])
     ndf['rest'] = np.where(ndf['rest']>3,'3+',ndf['rest'])
 
+    #rearrange columns 
+    ndf = ndf[['rest', 'pos', 'dataset', 'game_id', 'date', 'player_id', 'name',
+       'team', 'opp', 'venue', 'start','fpd', 'value', 'min', 'fg', 'fga', '3p', '3pa', 'ft',
+       'fta', 'or', 'dr', 'tot', 'a', 'pf', 'st', 'to', 'bl', 'pts', 'usage',
+       'salary', 'fp_pts', 'fp_fg', 'fp_3p', 'fp_ft', 'fp_or', 'fp_dr',
+       'fp_tot', 'fp_a', 'fp_st', 'fp_to', 'fp_bl', 'fp']]
+
+
+    
     #set up per min columns
     ncols = ndf.iloc[:,ndf.columns.get_loc('min')+1:].columns
     ndf[[f"{i}_per_min" for i in ncols]] = ndf[ncols].transform(lambda x : x/ndf['min'])
@@ -30,34 +40,19 @@ def build_features(ndf):
     ncols = ndf.iloc[:,ndf.columns.get_loc('fp_pts'):ndf.columns.get_loc('fp')].columns
     ndf[[f"{i}_%_fp" for i in ncols]] = ndf[ncols].transform(lambda x : x/ndf['fp'])
 
-    # 3 game moving average 
-    ncols = ndf.iloc[:,ndf.columns.get_loc('min'):].columns
+
+    #create moving averages and cumulate average
+    ncols = ndf.iloc[:,ndf.columns.get_loc('min'):ndf.columns.get_loc('fp_bl_%_fp')+1].columns
     ndf[[f"{i}_3MA" for i in ncols]] = ndf.groupby('player_id') \
-                        [ncols].transform(lambda x : x.rolling(window=3,min_periods=1).mean())
-
-    #5 game moving average
-    ncols = ndf.iloc[:,ndf.columns.get_loc('min'):].columns
+                            [ncols].transform(lambda x : x.rolling(window=3,min_periods=1).mean())
     ndf[[f"{i}_5MA" for i in ncols]] = ndf.groupby('player_id') \
-                        [ncols].transform(lambda x : x.rolling(window=5,min_periods=1).mean())
-
-
-    #7 game moving average
-    ncols = ndf.iloc[:,ndf.columns.get_loc('min'):].columns
+                            [ncols].transform(lambda x : x.rolling(window=5,min_periods=1).mean())
     ndf[[f"{i}_7MA" for i in ncols]] = ndf.groupby('player_id') \
-                        [ncols].transform(lambda x : x.rolling(window=7,min_periods=1).mean())
-
-
-    #10 game moving average
-    ncols = ndf.iloc[:,ndf.columns.get_loc('min'):].columns
+                            [ncols].transform(lambda x : x.rolling(window=7,min_periods=1).mean())
     ndf[[f"{i}_10MA" for i in ncols]] = ndf.groupby('player_id') \
-                        [ncols].transform(lambda x : x.rolling(window=10,min_periods=1).mean())
-
-
-    #moving average + cum calcs.
-    ncols = ndf.iloc[:,ndf.columns.get_loc('min'):].columns
+                            [ncols].transform(lambda x : x.rolling(window=10,min_periods=1).mean())
     ndf[[f"{i}_cum_avg" for i in ncols]] = ndf.groupby('player_id') \
-                        [ncols].transform(lambda x : x.expanding(axis=0).mean())
-
+                            [ncols].transform(lambda x : x.expanding(axis=0).mean())
 
     #cumsum calcs
     ncols = ndf.iloc[:,ndf.columns.get_loc('min'):ndf.columns.get_loc('fp')+1].columns
@@ -74,7 +69,7 @@ def build_features(ndf):
     ndf[[f"{i}_%_fp_cum_sum" for i in ncols]] = ndf[ncols].transform(lambda x : x/ndf['fp_cum_sum'])
 
 
-    #make dummy columns
+    #make dummy columns for position
     ndf = pd.get_dummies(ndf,columns=['pos'])
 
     #find last start
