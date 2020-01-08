@@ -38,7 +38,7 @@ df = pd.merge(df,player_df,how = 'left',on = ['player_id','date'])
 df = pd.merge(df,defense_df,how = 'left',on = ['opp','date'])
 
 #lag everything
-ncols = df.iloc[:,df.columns.get_loc('min'):].columns
+ncols = df.iloc[:,df.columns.get_loc('fpd'):].columns
 df[[f"{i}_lag" for i in ncols]] = df.groupby('player_id') \
                                 [ncols].transform(lambda x : x.shift())
 
