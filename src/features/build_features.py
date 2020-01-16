@@ -70,7 +70,7 @@ def build_features(ndf):
 
 
     #make dummy columns for position
-    ndf = pd.get_dummies(ndf,columns=['pos'])
+    #ndf = pd.get_dummies(ndf,columns=['pos'])
 
     #find last start
     ndf['last_start'] = ndf.groupby('player_id') \
@@ -78,8 +78,8 @@ def build_features(ndf):
 
 
     ndf['new_start'] = np.where((ndf['start'] == 'Y')
-                & (ndf['last_start'] =='N'), #Identifies the case to apply to
-                1,      #This is the value that is inserted
+                & (ndf['last_start'] =='N'), 
+                1,     
                 0) 
 
     return ndf
