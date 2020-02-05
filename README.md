@@ -61,3 +61,8 @@ Individual NBA players accrue "fantasy points" by accruing actual statistics in 
 My objective is to predict a players daily fantasy points in order to take advantage of player mispricings (i.e choose to play players who will score more than their salary suggests, or vice verse)
 
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+--------------
+
+**Please see the "NBA Daily Fantasy Value" notebook for project visualizations and findings**
+
+**All source code found under "src" folder**
