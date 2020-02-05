@@ -10,7 +10,7 @@ from sklearn.metrics import precision_score, recall_score, precision_recall_curv
 from sklearn.metrics import roc_auc_score, roc_curve
 
 
-def choose_features(df,target,unused_features,non_lag_features,prob = "C"):
+def choose_features(df,target,unused_features,non_lag_features,corr=.85,verbose=False,prob = "C"):
     """
     Takes in fully transformed data frame and chooses relevant features using 
     feature correlations and recursive feature extraction.
@@ -38,14 +38,14 @@ def choose_features(df,target,unused_features,non_lag_features,prob = "C"):
 
     #find only lagged columns and make new data frame
     lag_columns = [x for x in original_df.columns if re.search("_lag",x)]
-    lag_df = original_df[lag_columns].copy()
+    lag_df = original_df[lag_columns].copy() 
 
     #create feature correlation matrix and extract and then remove features with high correlations
     correlated_features = set()
     corr_matrix = lag_df.corr()
     for i in range(len(corr_matrix.columns)):
       for j in range(i):
-          if abs(corr_matrix.iloc[i, j]) > 0.85:
+          if abs(corr_matrix.iloc[i, j]) > corr:
               colname = corr_matrix.columns[i]
               correlated_features.add(colname)
 
@@ -61,7 +61,6 @@ def choose_features(df,target,unused_features,non_lag_features,prob = "C"):
                 'start', \
                 'new_start', \
                 'def_type_lag', \
-                'value_lag', \
                 'rest']
 
     target = target
@@ -86,12 +85,12 @@ def choose_features(df,target,unused_features,non_lag_features,prob = "C"):
     #use recursive feature extraction to choose best features
     if prob == "C":
       rfc = RandomForestClassifier(n_estimators = 100,max_depth = 6, min_samples_leaf=5,n_jobs=-1)
-      rfecv = RFECV(estimator=rfc, step=12, cv=tscv, scoring=fhalf_scorer,verbose=True,n_job=-1)
+      rfecv = RFECV(estimator=rfc, step=12, cv=tscv, scoring=fhalf_scorer,verbose=verbose,n_jobs=-1)
       rfecv.fit(X_train, y_train)
       X_train.drop(X_train.columns[np.where(rfecv.support_ == False)[0]], axis=1, inplace=True)
     else:
       rfc = RandomForestRegressor(n_estimators = 100,max_depth = 6, min_samples_leaf=5,n_jobs=-1)
-      rfecv = RFECV(estimator=rfc, step=12, cv=tscv, scoring='neg_mean_squared_error',verbose=True,n_jobs=-1)
+      rfecv = RFECV(estimator=rfc, step=12, cv=tscv, scoring='neg_mean_squared_error',verbose=verbose,n_jobs=-1)
       rfecv.fit(X_train, y_train)
       X_train.drop(X_train.columns[np.where(rfecv.support_ == False)[0]], axis=1, inplace=True)
 
@@ -99,14 +98,13 @@ def choose_features(df,target,unused_features,non_lag_features,prob = "C"):
     
 
 
-def prepare_model_data(df,dummies,target,features):
+def prepare_model_data(df,target,features=None,dummies=None):
     """
     Takes in fully transformed data frame and creates features set (with dummies)
     target, and feature column names for future use
 
     Parameters:
     df          (pandas df)       :     Fully transformed/engineered dataframe
-    dummies     (list)            :     list of features to create dummy variable for
     target      (list)            :     target variable
     features    (list)            :     features to try, if "N", assume entire df is features (including target)
 
@@ -116,11 +114,18 @@ def prepare_model_data(df,dummies,target,features):
     (list)            :     feature columns
 
     """
-    if features:
-      X = pd.get_dummies(df,columns=dummies)
-      X = X[features]
-      model_columns = X.columns
-      y = df[target]
+    if features is not None:
+        if dummies is None:
+          X = df[features].copy()
+          X = pd.get_dummies(X).copy()
+          X.drop(columns=[target],inplace=True)
+          model_columns = X.columns
+          y = df[target].copy()
+        else:
+          X = pd.get_dummies(df,columns=dummies)
+          X = X[features].copy()
+          model_columns = X.columns
+          y = df[target]
     else:
       X = pd.get_dummies(df)
       y = X[target].copy()
@@ -187,7 +192,7 @@ def prepare_rf_random_search_grid():
     return random_rf_grid
 
 
-def rf_random_search(grid,tspl,prob="C"):
+def rf_random_search(X_train,y_train,grid,tspl,prob="C",verbose=0):
     """
 
     Performs random search for optimial RF paramters using specified grid
@@ -207,11 +212,10 @@ def rf_random_search(grid,tspl,prob="C"):
     else:
       rf = RandomForestRegressor(random_state=42)
     
-    tscv = TimeSeriesSplit(n_splits=3)
-    rf_random = RandomizedSearchCV(estimator = rf, param_distributions = grid, n_iter = 20,scoring='neg_mean_squared_error', cv = tscv, verbose=1, random_state=42, n_jobs = -1)
-    rf_random.fit
+    rf_random = RandomizedSearchCV(estimator = rf, param_distributions = grid, n_iter = 20,scoring='neg_mean_squared_error', cv = tspl, verbose=verbose, random_state=42, n_jobs = -1)
+    rf_random.fit(X_train,y_train)
 
-    return rf_random.best_params_, rf_random.best_score_, rf_random.best_estimator_
+    return rf_random.best_params_ , rf_random.best_score_, rf_random.best_estimator_
 
 
 
